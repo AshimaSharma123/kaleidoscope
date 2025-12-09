@@ -3,15 +3,15 @@
 import { useEffect, useState } from 'react';
 
 type PrincipleProps = {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  bgcolor: string;
-  percentage: number;
-  checked: boolean;
-  layersVisible: boolean;
-  layers: any[];
+    id: string;
+    name: string;
+    description: string;
+    color: string;
+    bgcolor: string;
+    percentage: number;
+    checked: boolean;
+    layersVisible: boolean;
+    layers: any[];
 }
 
 type props = {
@@ -38,6 +38,7 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
     const [hoveredTooltip, setHoveredTooltip] = useState<string | null>(null);
     const [budgetTier, setBudgetTier] = useState<TierObject[]>([]);
     const [showStage, setShowStage] = useState<string>("");
+    const [loader, setLoader] = useState<boolean>(false);
 
     const categories = [
         {
@@ -196,7 +197,7 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
         } else {
             setShowStage("");
         }
-        
+
         return numeric.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
     };
 
@@ -208,29 +209,31 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
     }
 
     const getPrinciples = async () => {
-    const res = await fetch("/api/principles");
-    const data = await res.json();
-
-    Principles(
-      data?.records?.map((prin: any) => ({
-        id: prin.fields["Principle ID"],
-        name: prin.fields["Display Name"],
-        description: prin.fields["Description"],
-        color: prin.fields["Color"],
-        bgcolor: "#FFFDFD",
-        percentage: 0,
-        checked: false,
-        layersVisible: false,
-        layers: prin?.subPrinciples.map((sp: any) => ({
-          id: sp.executionLayerId,
-          name: sp.displayName,
-          description: sp.description,
-          percentage: 0,
-          checked: false
-        }))
-      }))
-    );
-  }
+        setLoader(true);
+        const res = await fetch("/api/principles");
+        const data = await res.json();
+        setLoader(false);
+        Principles(
+            data?.records?.map((prin: any) => ({
+                id: prin.fields["Principle ID"],
+                name: prin.fields["Display Name"],
+                description: prin.fields["Description"],
+                color: prin.fields["Color"],
+                bgcolor: "#FFFDFD",
+                percentage: 0,
+                budget: 0,
+                checked: false,
+                layersVisible: false,
+                layers: prin?.subPrinciples.map((sp: any) => ({
+                    id: sp.executionLayerId,
+                    name: sp.displayName,
+                    description: sp.description,
+                    percentage: 0,
+                    checked: false
+                }))
+            }))
+        );
+    }
 
 
     useEffect(() => {
@@ -259,7 +262,7 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
                         Responsible Tech Budget Evaluator
                     </h1>
                     <p className="text-sm sm:text-lg text-[#6B7280]">
-                        Optimize2 your spending to maximize positive impact across privacy, fairness, and sustainability.
+                        Optimize your spending to maximize positive impact across privacy, fairness, and sustainability.
                     </p>
                 </div>
 
@@ -328,16 +331,14 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
                             {categories.map((category) => (
                                 <div
                                     key={category.id}
-                                    onClick={() => { 
+                                    onClick={() => {
                                         setSelectedCategories([category.id]);
                                         selectedValues({
                                             budget: budget,
                                             tech: category.id
                                         })
                                     }}
-                                    className={`${selectedCategories.includes(category.id) ? "bg-[#3B82F6]" : "bg-white"} relative p-4 sm:p-5 rounded-md border-2 transition-all text-left group hover:bg-[#3B82F6] transition-colors duration-600 cursor-pointer 
-                    border-gray-100
-                    `
+                                    className={`${selectedCategories.includes(category.id) ? "bg-[#3B82F6]" : "bg-white"} relative p-4 sm:p-5 rounded-md border-2 transition-all text-left group hover:bg-[#3B82F6] transition-colors duration-600 cursor-pointer border-gray-100`
                                     }
                                 >
                                     <div className="flex flex-col gap-3.5 sm:gap-4 relative">
@@ -416,21 +417,26 @@ export default function BudgetTool({ onNext, selectedValues, Principles }: props
 
                     {/* Continue Button */}
                     <button onClick={() => {
-                        budget && selectedCategories.length > 0 ?
-                        getPrinciples() : "";
+                        (budget && selectedCategories.length > 0 && !loader) ?
+                            getPrinciples() : "";
                         // budget && selectedCategories.length > 0 ? onNext(2) : ""
                     }
-                    } className="cursor-pointer flex items-center justify-center gap-2.5 px-10 sm:py-4 py-3 rounded-lg bg-[#3B82F6]">
-                        <span className="text-base font-semibold text-white">Continue</span>
-                        <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
-                            <path
-                                d="M15.4286 16.5714L20 12M20 12L15.4286 7.39539M20 12H5.14286"
-                                stroke="white"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                            />
-                        </svg>
+                    } className={`${(budget && selectedCategories.length > 0) && !loader ? "cursor-pointer" : "cursor-not-allowed"} flex items-center justify-center gap-2.5 px-10 sm:py-4 py-3 rounded-lg bg-[#3B82F6]`}>
+                        {!loader ? <>
+                            <span className="text-base font-semibold text-white">Continue</span>
+                            <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none">
+                                <path
+                                    d="M15.4286 16.5714L20 12M20 12L15.4286 7.39539M20 12H5.14286"
+                                    stroke="white"
+                                    strokeWidth="2"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                />
+                            </svg>
+                        </>
+                            : <span className="text-base font-semibold text-white">Processing...</span>
+                        }
+
                     </button>
                 </div>
             </main>

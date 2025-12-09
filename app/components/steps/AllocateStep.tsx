@@ -17,6 +17,7 @@ type PrincipleProps = {
   percentage: number;
   checked: boolean;
   layersVisible: boolean;
+  budget: number;
   layers: any[];
 }
 
@@ -28,7 +29,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
   const togglePrincipleChecked = (principleId: string) => {
     setPrinciples((prev) =>
       prev.map((p) =>
-        p.id === principleId ? { ...p, checked: !p.checked } : p
+        p.id === principleId ? { ...p, checked: !p.checked, percentage: !p.checked==false ? 0 : p.percentage } : p
       )
     );
   };
@@ -60,7 +61,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     setPrinciples((prev) =>
       prev.map((p) =>
         p.id === principleId
-          ? { ...p, percentage: Math.min(Math.max(value, 0), 100) }
+          ? { ...p, percentage: Math.min(Math.max(value, 0), 100), budget: Math.min(Math.max(value, 0), 100) ==0 ? 0 : p.budget}
           : p
       )
     );
@@ -74,7 +75,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
             ...p,
             layers: p.layers.map((layer) =>
               layer.id === layerId
-                ? { ...layer, percentage: Math.min(Math.max(value, 0), 100) }
+                ? { ...layer, percentage: Math.min(Math.max(value, 0), 100)  }
                 : layer
             ),
           }
@@ -83,28 +84,76 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     );
   };
 
+
+
   const getPrincipalDollarAmount = (principleId: string) => {
     const principle = principles.find((p) => p.id === principleId);
     if (!principle) return '0';
-    return (principle.percentage / 100 * 9.3).toFixed(1);
-  };
+   
+    const amount = (principle.percentage / 100 * Number(totalBudget.replace(/,/g, ""))).toLocaleString("en-US", { maximumFractionDigits: 1 });
+   
 
-  const totalRemaining = 100;
-  const totalRemainingDollar = 6.4;
+    return amount;
+  };
+  
+useEffect(() => {
+  setPrinciples((prev) =>
+    prev.map((p) => ({
+      ...p,
+      budget:
+        (p.percentage / 100) *
+        Number(totalBudget.replace(/,/g, "")),
+    }))
+  );
+}, [totalBudget, principles.map(p => p.percentage).join()]);
 
   const calculateRemaining = () => {
-    const totalAllocated = principles.reduce((sum, p) => sum + p.percentage, 0);
-    return 100 - totalAllocated;
+   
+          const totalAllocated = principles.reduce((sum, p) => sum + p.percentage, 0);
+          return 100 - totalAllocated;
+    
   };
 
+  
+
   const calculateDollarAmount = (percentage: number) => {
-    const amount = (percentage / 100) * Number(totalBudget.replace(/,/g, ""));
-    return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
+   
+      const amount = (percentage / 100) * Number(totalBudget.replace(/,/g, ""));
+      return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
+    
+    
   };
+const calculateRemainingL = (principleId: string) => {
+  const principle = principles?.find((p) => p.id === principleId);
+  if (!principle) return 0;
+
+  const totalAllocated = principle.layers.reduce(
+    (sum, l) => sum + l.percentage,
+    0
+  );
+
+  return 100 - totalAllocated;
+};
+
+const calculateDollarAmountL = (
+  percentage: number,
+  principleBudget: number
+) => {
+  const amount = (percentage / 100) * principleBudget;
+
+  return amount.toLocaleString("en-US", {
+    maximumFractionDigits: 1,
+  });
+};
+
+
 
   const remainingPercentage = calculateRemaining();
   const remainingDollars = calculateDollarAmount(remainingPercentage);
 
+  useEffect(()=>{
+    console.log("princi", principles);
+  },[principles])
   return (
     <>
       {/* Main Content */}
@@ -126,7 +175,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
             <div className="sm:text-base text-sm text-[#323152]">
               <span className="font-semibold">Remaining: </span>
               <span className="font-normal">
-                {remainingPercentage}% (${remainingDollars}K)
+                {remainingPercentage}% (${remainingDollars})
               </span>
             </div>
           </div>
@@ -186,7 +235,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
                         </div>
                         {principle.checked && (
                           <div className="sm:text-base text-sm text-[#6B7280]">
-                            ${getPrincipalDollarAmount(principle.id)}K
+                            ${getPrincipalDollarAmount(principle.id)}
                           </div>
                         )}
                       </div>
@@ -260,10 +309,10 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
                           <div className="flex flex-col gap-4">
                             <div className="flex sm:flex-row flex-col justify-between sm:items-center items-start">
                               <h4 className="text-sm sm:text-base font-medium text-gray-900">
-                                Allocate within {principle.name} (must total 1%)
+                                Allocate within {principle.name} (must total {principle.percentage}%)
                               </h4>
                               <span className="sm:text-sm text-xs text-gray-500">
-                                Remaining: 100% ($6.4K)
+                                Remaining: {calculateRemainingL(principle.id)}% (${calculateDollarAmountL(calculateRemainingL(principle.id),principle.budget)}) 
                               </span>
                             </div>
 
@@ -323,11 +372,11 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
                                         max="100"
                                         value={layer.percentage}
                                         onChange={(e) =>
-                                          handleLayerSlider(
+                                         principle.percentage > 0 ? handleLayerSlider(
                                             principle.id,
                                             layer.id,
                                             Number(e.target.value)
-                                          )
+                                          ) : ""
                                         }
                                         className="w-full h-2 bg-gray-300 rounded-full appearance-none cursor-pointer slider"
                                         style={{
