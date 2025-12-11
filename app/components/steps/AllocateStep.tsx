@@ -169,7 +169,7 @@ const calculateDollarAmountL = (
         </div>
 
         {/* Budget Allocation Container */}
-        <div className="flex flex-col gap-7">
+        <div className="flex flex-col gap-7"> 
           {/* Remaining Budget Card */}
           <div className="px-7 py-5 inline-block m-auto rounded-xl border text-center border-gray-200 bg-[#F9FAFB] max-w-100">
             <div className="sm:text-base text-sm text-[#323152]">
