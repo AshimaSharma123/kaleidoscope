@@ -167,7 +167,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
   };
 
   const calculateDollarAmountL = (
-    percentage: number,
+    percentage: number, 
     principleBudget: number
   ) => {
     const amount = (percentage / 100) * principleBudget;
