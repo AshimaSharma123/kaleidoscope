@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import ToastModal from '../CustomToast';
 
 type props = {
   onNext: (value: number) => void;
@@ -25,6 +26,8 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
   const totalBudget = selectedValues.budget;
 
   const [principles, setPrinciples] = useState<PrincipleProps[]>(Principles);
+  const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState("");
 
   const togglePrincipleChecked = (principleId: string) => {
     setPrinciples((prev) =>
@@ -84,8 +87,6 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     );
   };
 
-
-
   const getPrincipalDollarAmount = (principleId: string) => {
     const principle = principles.find((p) => p.id === principleId);
     if (!principle) return '0';
@@ -110,9 +111,7 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
   const calculateRemaining = () => {
 
     const totalAllocated = principles.reduce((sum, p) => sum + p.percentage, 0);
-
     let allocated = 100 - totalAllocated;
-
     if (allocated < 0) {
       allocated = totalAllocated;
     }
@@ -122,12 +121,10 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
 
 
   const calculateDollarAmount = (percentage: number) => {
-
     const amount = (percentage / 100) * Number(totalBudget.replace(/,/g, ""));
     return amount.toLocaleString("en-US", { maximumFractionDigits: 1 });
-
-
   };
+
   const calculateRemainingL = (principleId: string) => {
     const principle = principles?.find((p) => p.id === principleId);
     if (!principle) return 0;
@@ -144,7 +141,10 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     return remaining;
   };
   const getTotalPrinciplesPercentage = (principles: any[]) => {
-    return principles.reduce((sum, p) => sum + p.percentage, 0);
+    const percentage = principles.reduce((sum, p) => sum + p.percentage, 0);
+
+    return percentage;
+
   };
 
   const areAllLayersValid = (principles: any[], totalBudget: number) => {
@@ -166,14 +166,6 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     });
   };
 
-
-
-  const shouldShowSuccessMessage = (principles: any[]) => {
-    const principlesTotal = getTotalPrinciplesPercentage(principles);
-    const layersValid = areAllLayersValid(principles, Number(totalBudget.replace(/,/g, "")));
-
-    return principlesTotal === 100 && layersValid;
-  };
   const calculateDollarAmountL = (
     percentage: number,
     principleBudget: number
@@ -185,20 +177,33 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
     });
   };
 
-
-
   const remainingPercentage = calculateRemaining();
   const remainingDollars = calculateDollarAmount(remainingPercentage);
 
-  useEffect(() => {
-    shouldShowSuccessMessage(principles)
-  }, [principles])
+  const shouldShowSuccessMessage = (principles: any[]) => {
+    const principlesTotal = getTotalPrinciplesPercentage(principles);
+    const layersValid = areAllLayersValid(principles, Number(totalBudget.replace(/,/g, "")));
+    return principlesTotal === 100 && layersValid;
+  };
+
+  const ValidationIcon = () => {
+    return <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M9.50056 14.3571C9.25902 14.3571 9.02738 14.2612 8.85659 14.0904C8.68579 13.9196 8.58984 13.688 8.58984 13.4464V9.19642C8.58984 8.95488 8.68579 8.72324 8.85659 8.55245C9.02738 8.38166 9.25902 8.28571 9.50056 8.28571C9.74209 8.28571 9.97374 8.38166 10.1445 8.55245C10.3153 8.72324 10.4113 8.95488 10.4113 9.19642V13.4464C10.4113 13.688 10.3153 13.9196 10.1445 14.0904C9.97374 14.2612 9.74209 14.3571 9.50056 14.3571Z" fill="#EF4444" />
+      <path d="M8.28516 5.85714C8.28516 5.53509 8.41309 5.22623 8.64081 4.99851C8.86854 4.77079 9.17739 4.64285 9.49944 4.64285C9.82149 4.64285 10.1303 4.77079 10.3581 4.99851C10.5858 5.22623 10.7137 5.53509 10.7137 5.85714C10.7137 6.17919 10.5858 6.48804 10.3581 6.71577C10.1303 6.94349 9.82149 7.07142 9.49944 7.07142C9.17739 7.07142 8.86854 6.94349 8.64081 6.71577C8.41309 6.48804 8.28516 6.17919 8.28516 5.85714Z" fill="#EF4444" />
+      <path fillRule="evenodd" clipRule="evenodd" d="M19 9.5C19 10.7476 18.7543 11.9829 18.2769 13.1355C17.7994 14.2881 17.0997 15.3354 16.2175 16.2175C15.3354 17.0997 14.2881 17.7994 13.1355 18.2769C11.9829 18.7543 10.7476 19 9.5 19C8.25244 19 7.0171 18.7543 5.86451 18.2769C4.71191 17.7994 3.66464 17.0997 2.78249 16.2175C1.90033 15.3354 1.20056 14.2881 0.723145 13.1355C0.245725 11.9829 -1.85901e-08 10.7476 0 9.5C3.75443e-08 6.98044 1.00089 4.56408 2.78249 2.78249C4.56408 1.00089 6.98044 0 9.5 0C12.0196 0 14.4359 1.00089 16.2175 2.78249C17.9991 4.56408 19 6.98044 19 9.5ZM16.9643 9.5C16.9643 11.4797 16.1779 13.3782 14.778 14.778C13.3782 16.1779 11.4797 16.9643 9.5 16.9643C7.52035 16.9643 5.62178 16.1779 4.22195 14.778C2.82213 13.3782 2.03571 11.4797 2.03571 9.5C2.03571 7.52035 2.82213 5.62178 4.22195 4.22195C5.62178 2.82213 7.52035 2.03571 9.5 2.03571C11.4797 2.03571 13.3782 2.82213 14.778 4.22195C16.1779 5.62178 16.9643 7.52035 16.9643 9.5Z" fill="#EF4444" />
+    </svg>
+  }
 
   return (
     <>
       {/* Main Content */}
       <main className="mx-auto max-w-4xl px-4 lg:px-8 py-8 sm:py-12 lg:py-16">
         {/* Title Section */}
+        <ToastModal
+          open={showToast}
+          message={error}
+          onClose={() => setShowToast(false)}
+        />
         <div className="mb-8 text-center">
           <h1 className="text-xl sm:text-[45px] font-bold text-gray-900 mb-4 tracking-tight">
             ALLOCATE YOUR BUDGET
@@ -235,29 +240,12 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
               remainingPercentage > 100 ?
                 <div className="px-7 py-5 inline-block m-auto  text-center max-w-fit text-[#EF4444]">
                   <div className='flex items-center gap-2'>
-
-
-                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9.50056 14.3571C9.25902 14.3571 9.02738 14.2612 8.85659 14.0904C8.68579 13.9196 8.58984 13.688 8.58984 13.4464V9.19642C8.58984 8.95488 8.68579 8.72324 8.85659 8.55245C9.02738 8.38166 9.25902 8.28571 9.50056 8.28571C9.74209 8.28571 9.97374 8.38166 10.1445 8.55245C10.3153 8.72324 10.4113 8.95488 10.4113 9.19642V13.4464C10.4113 13.688 10.3153 13.9196 10.1445 14.0904C9.97374 14.2612 9.74209 14.3571 9.50056 14.3571Z" fill="#EF4444" />
-                      <path d="M8.28516 5.85714C8.28516 5.53509 8.41309 5.22623 8.64081 4.99851C8.86854 4.77079 9.17739 4.64285 9.49944 4.64285C9.82149 4.64285 10.1303 4.77079 10.3581 4.99851C10.5858 5.22623 10.7137 5.53509 10.7137 5.85714C10.7137 6.17919 10.5858 6.48804 10.3581 6.71577C10.1303 6.94349 9.82149 7.07142 9.49944 7.07142C9.17739 7.07142 8.86854 6.94349 8.64081 6.71577C8.41309 6.48804 8.28516 6.17919 8.28516 5.85714Z" fill="#EF4444" />
-                      <path fillRule="evenodd" clipRule="evenodd" d="M19 9.5C19 10.7476 18.7543 11.9829 18.2769 13.1355C17.7994 14.2881 17.0997 15.3354 16.2175 16.2175C15.3354 17.0997 14.2881 17.7994 13.1355 18.2769C11.9829 18.7543 10.7476 19 9.5 19C8.25244 19 7.0171 18.7543 5.86451 18.2769C4.71191 17.7994 3.66464 17.0997 2.78249 16.2175C1.90033 15.3354 1.20056 14.2881 0.723145 13.1355C0.245725 11.9829 -1.85901e-08 10.7476 0 9.5C3.75443e-08 6.98044 1.00089 4.56408 2.78249 2.78249C4.56408 1.00089 6.98044 0 9.5 0C12.0196 0 14.4359 1.00089 16.2175 2.78249C17.9991 4.56408 19 6.98044 19 9.5ZM16.9643 9.5C16.9643 11.4797 16.1779 13.3782 14.778 14.778C13.3782 16.1779 11.4797 16.9643 9.5 16.9643C7.52035 16.9643 5.62178 16.1779 4.22195 14.778C2.82213 13.3782 2.03571 11.4797 2.03571 9.5C2.03571 7.52035 2.82213 5.62178 4.22195 4.22195C5.62178 2.82213 7.52035 2.03571 9.5 2.03571C11.4797 2.03571 13.3782 2.82213 14.778 4.22195C16.1779 5.62178 16.9643 7.52035 16.9643 9.5Z" fill="#EF4444" />
-                    </svg>
-
-
+                    {ValidationIcon()}
                     Total must equal 100% (currently: {remainingPercentage}%)</div></div>
                 :
-
                 <div className="px-7 py-5 inline-block m-auto  text-center max-w-fit text-[#EF4444]">
                   <div className='flex items-center gap-2'>
-
-
-                    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M9.50056 14.3571C9.25902 14.3571 9.02738 14.2612 8.85659 14.0904C8.68579 13.9196 8.58984 13.688 8.58984 13.4464V9.19642C8.58984 8.95488 8.68579 8.72324 8.85659 8.55245C9.02738 8.38166 9.25902 8.28571 9.50056 8.28571C9.74209 8.28571 9.97374 8.38166 10.1445 8.55245C10.3153 8.72324 10.4113 8.95488 10.4113 9.19642V13.4464C10.4113 13.688 10.3153 13.9196 10.1445 14.0904C9.97374 14.2612 9.74209 14.3571 9.50056 14.3571Z" fill="#EF4444" />
-                      <path d="M8.28516 5.85714C8.28516 5.53509 8.41309 5.22623 8.64081 4.99851C8.86854 4.77079 9.17739 4.64285 9.49944 4.64285C9.82149 4.64285 10.1303 4.77079 10.3581 4.99851C10.5858 5.22623 10.7137 5.53509 10.7137 5.85714C10.7137 6.17919 10.5858 6.48804 10.3581 6.71577C10.1303 6.94349 9.82149 7.07142 9.49944 7.07142C9.17739 7.07142 8.86854 6.94349 8.64081 6.71577C8.41309 6.48804 8.28516 6.17919 8.28516 5.85714Z" fill="#EF4444" />
-                      <path fillRule="evenodd" clipRule="evenodd" d="M19 9.5C19 10.7476 18.7543 11.9829 18.2769 13.1355C17.7994 14.2881 17.0997 15.3354 16.2175 16.2175C15.3354 17.0997 14.2881 17.7994 13.1355 18.2769C11.9829 18.7543 10.7476 19 9.5 19C8.25244 19 7.0171 18.7543 5.86451 18.2769C4.71191 17.7994 3.66464 17.0997 2.78249 16.2175C1.90033 15.3354 1.20056 14.2881 0.723145 13.1355C0.245725 11.9829 -1.85901e-08 10.7476 0 9.5C3.75443e-08 6.98044 1.00089 4.56408 2.78249 2.78249C4.56408 1.00089 6.98044 0 9.5 0C12.0196 0 14.4359 1.00089 16.2175 2.78249C17.9991 4.56408 19 6.98044 19 9.5ZM16.9643 9.5C16.9643 11.4797 16.1779 13.3782 14.778 14.778C13.3782 16.1779 11.4797 16.9643 9.5 16.9643C7.52035 16.9643 5.62178 16.1779 4.22195 14.778C2.82213 13.3782 2.03571 11.4797 2.03571 9.5C2.03571 7.52035 2.82213 5.62178 4.22195 4.22195C5.62178 2.82213 7.52035 2.03571 9.5 2.03571C11.4797 2.03571 13.3782 2.82213 14.778 4.22195C16.1779 5.62178 16.9643 7.52035 16.9643 9.5Z" fill="#EF4444" />
-                    </svg>
-
-
+                    {ValidationIcon()}
                     <span>Please ensure execution layers total exactly 100%</span>
                   </div></div>
           }
@@ -490,7 +478,30 @@ export default function AllocatePage({ onNext, selectedValues, Principles }: pro
           </div>
 
           {/* Generate Report Button */}
-          <button onClick={() => onNext(3)} className="cursor-pointer w-full px-10 sm:py-4 py-3 rounded-lg bg-[#3B82F6] text-center">
+          <button onClick={() => {
+            const principlesTotal = getTotalPrinciplesPercentage(principles);
+            const layersValid = areAllLayersValid(principles, Number(totalBudget.replace(/,/g, "")));
+
+            if (principlesTotal > 100 || (principlesTotal < 100 && principlesTotal > 0)) {
+              setError(`Total must equal 100% (Allocated: ${principlesTotal}%)`);
+              setShowToast(true);
+              return;
+            }
+
+            else if (principlesTotal === 100 && !layersValid) {
+              setError("Please ensure execution layers total exactly 100%");
+              setShowToast(true);
+              return;
+            }
+            else if (principlesTotal === 0) {
+              setError("Please allocate budget to generate report");
+              setShowToast(true);
+              return;
+            }
+            
+            onNext(3);
+          }
+          } className="cursor-pointer w-full px-10 sm:py-4 py-3 rounded-lg bg-[#3B82F6] text-center">
             <span className="text-base font-semibold text-white">
               Generate Report
             </span>
