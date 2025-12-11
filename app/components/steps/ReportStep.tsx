@@ -7,7 +7,7 @@ type props = {
 }
 
 
-export default function ReportPage({ onNext }: props) {
+export default function ReportPage({ onNext }: props) { 
   return (
     <>
       {/* Main Content */}
