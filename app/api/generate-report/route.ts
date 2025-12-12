@@ -8,7 +8,7 @@ export async function GET() {
 
     let allRecords: any[] = [];
     let offset: string | undefined = undefined;
-
+ 
     do {
       const url = new URL(baseUrl);
       if (offset) url.searchParams.set("offset", offset);

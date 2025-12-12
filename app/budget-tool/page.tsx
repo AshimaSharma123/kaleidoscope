@@ -18,7 +18,7 @@ export default function BudgetTool() {
       <header className="border-b border-gray-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex  items-center justify-center sm:py-8 py-7">
-
+ 
             <Image
               onClick={() => setStep(1)}
               src="/logo.svg"
